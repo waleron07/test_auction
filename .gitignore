@@ -1,0 +1,56 @@
+# --- Внутренние рабочие документы (не уходят в сдаваемый репозиторий) ---
+# OPENAPI_ANALYSIS.md здесь СОЗНАТЕЛЬНО отсутствует: на его номера ①–㉜
+# ссылаются JSDoc утилит и названия тест-кейсов, он часть поставки.
+ТЗ.md
+Тестовое_задание.pdf
+PLAN.md
+ARCHITECTURE.md
+
+# --- Зависимости ---
+node_modules/
+.pnp
+.pnp.js
+
+# --- Сборка ---
+dist/
+dist-ssr/
+build/
+*.local
+
+# --- Кэши и артефакты тулинга ---
+.vite/
+coverage/
+*.tsbuildinfo
+.eslintcache
+.turbo/
+
+# --- Логи ---
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Окружение ---
+.env
+.env.*
+!.env.example
+
+# --- Редакторы и ОС ---
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# --- НЕ игнорировать: нужно проверяющему ---
+# public/mockServiceWorker.js  — без него не поднимутся моки после npm i
+# openapi/openapi.auctions.v0.json — контракт, на который опирается код
+# README.md, AI_USAGE.md — обязательные пункты сдачи
+# OPENAPI_ANALYSIS.md — разбор контракта, на него ссылается код
