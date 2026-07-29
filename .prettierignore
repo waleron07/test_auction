@@ -1,0 +1,6 @@
+dist
+node_modules
+public/mockServiceWorker.js
+src/shared/api/generated
+src/app/router/route-tree.gen.ts
+package-lock.json

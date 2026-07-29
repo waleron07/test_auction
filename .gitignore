@@ -19,6 +19,9 @@ build/
 
 # --- Кэши и артефакты тулинга ---
 .vite/
+# Временный каталог плагина TanStack Router (не путать с route-tree.gen.ts,
+# который коммитится — без него не собирается роутер).
+.tanstack/
 coverage/
 *.tsbuildinfo
 .eslintcache

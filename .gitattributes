@@ -1,0 +1,4 @@
+# Сгенерированные файлы: не шумят в диффах и не считаются написанными руками.
+src/shared/api/generated/schema.ts linguist-generated=true
+src/app/router/route-tree.gen.ts   linguist-generated=true
+package-lock.json                  linguist-generated=true
