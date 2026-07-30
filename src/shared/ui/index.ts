@@ -1,3 +1,4 @@
+export { ApiErrorState } from './api-error-state.component';
 export { EmptyState } from './empty-state.component';
 export { ErrorState } from './error-state.component';
 export { NotFound } from './not-found.component';

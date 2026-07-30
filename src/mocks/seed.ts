@@ -357,6 +357,8 @@ export const SEED_CASE_UIDS = {
   withCanceledBets: 'auction-with-canceled-bets',
   /** `can_set_bet: false` — ставка обязана получить 422. */
   notBiddable: 'auction-not-biddable',
+  /** История ставок скрыта: маршрут ставок не должен их запрашивать (⑩⑪). */
+  hiddenBetsHistory: 'auction-hidden-bets-history',
 } as const;
 
 interface SeedData {
@@ -534,6 +536,7 @@ export const createSeed = (): SeedData => {
   });
   push({ orderUid: SEED_CASE_UIDS.withCanceledBets, aucType: 'Down', canSetBet: true });
   push({ orderUid: SEED_CASE_UIDS.notBiddable, canSetBet: false });
+  push({ orderUid: SEED_CASE_UIDS.hiddenBetsHistory, hideBetsHistoryRoot: true });
 
   // Наполнение до ~60 записей: пагинация и фильтры должны работать на объёме.
   while (specs.length < 60) {

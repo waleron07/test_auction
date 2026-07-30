@@ -1,5 +1,5 @@
 import { type QueryClient } from '@tanstack/react-query';
-import { createRouter } from '@tanstack/react-router';
+import { createRouter, type RouterHistory } from '@tanstack/react-router';
 
 import { NotFound } from '@/shared/ui/not-found.component';
 import { RouteError } from '@/shared/ui/route-error.component';
@@ -13,6 +13,11 @@ export type { RouterContext };
 export interface CreateAppRouterParams {
   /** Клиент запросов, попадающий в контекст маршрутов. */
   queryClient: QueryClient;
+  /**
+   * История навигации. В приложении не передаётся — роутер берёт браузерную;
+   * тесты передают память, чтобы открыть конкретный URL без jsdom-навигации.
+   */
+  history?: RouterHistory;
 }
 
 /**
@@ -22,12 +27,13 @@ export interface CreateAppRouterParams {
  * требование задания про prefetch по hover: наведение на `<Link>` карточки
  * вызывает loader, а он греет тот же ключ, который потом читает страница.
  * `defaultPendingMinMs` не даёт скелетону моргать на быстрых ответах моков.
- * @param queryClient Клиент запросов, попадающий в контекст маршрутов.
+ * @param params Клиент запросов и, для тестов, история навигации.
  * @returns Роутер с общими error/pending/notFound-компонентами.
  */
-export const createAppRouter = ({ queryClient }: CreateAppRouterParams) =>
+export const createAppRouter = ({ queryClient, history }: CreateAppRouterParams) =>
   createRouter({
     routeTree,
+    ...(history === undefined ? {} : { history }),
     context: { queryClient } satisfies RouterContext,
     defaultPreload: 'intent',
     defaultPreloadDelay: 100,
