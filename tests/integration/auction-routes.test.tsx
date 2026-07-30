@@ -93,7 +93,7 @@ describe('доступность страницы ставки (⑧)', () => {
     const cached = queryClient.getQueryData<AuctionShowResponseDto>(auctionKeys.detail(uid));
 
     expect(cached?.trading.can_set_bet).toBe(true);
-    expect(await screen.findByRole('heading', { name: 'Ставка' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /Ставка на аукцион/iu })).toBeInTheDocument();
   });
 });
 

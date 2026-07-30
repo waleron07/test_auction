@@ -29,6 +29,8 @@ export type BetListResponseDto = components['schemas']['BetListResponse'];
 export type BetItemDto = components['schemas']['BetItem'];
 /** Тело `POST /auctions/{auctionUuid}/bets`: единственное поле `price` (⑧). */
 export type SetBetRequestDto = components['schemas']['SetBetRequest'];
+/** `trading.price` — `min`/`max`/`step`/`current`/`available`, все nullable (⑦). */
+export type AuctionShowTradingPriceDto = components['schemas']['AuctionShowTradingPrice'];
 
 /* --- Ошибки (⑯) --- */
 
