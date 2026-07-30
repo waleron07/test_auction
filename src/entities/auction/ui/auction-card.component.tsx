@@ -19,6 +19,14 @@ export interface AuctionCardProps {
    * обработчик виджет списка (ARCHITECTURE 4.1).
    */
   onPrefetch?: (() => void) | undefined;
+  /**
+   * Шаг ставки, отформатированный виджетом.
+   *
+   * В DTO списка шага нет вовсе (㉑) — он приходит из кэша detail, прогретого
+   * prefetch'ем. Пока кэш пуст, блок не рендерится: прочерк на его месте
+   * читался бы как «шаг равен нулю».
+   */
+  bidStep?: string | undefined;
 }
 
 /** Строка «подпись — значение» карточки. */
@@ -42,7 +50,7 @@ const Field = ({ label, value }: { label: string; value: string }) => (
  * блока цены (㉛) уже превращено маппером в прочерк, поэтому разметка не
  * ветвится.
  */
-export const AuctionCard = ({ auction, action, onPrefetch }: AuctionCardProps) => (
+export const AuctionCard = ({ auction, action, onPrefetch, bidStep }: AuctionCardProps) => (
   <Card
     component="article"
     aria-label={`Аукцион ${auction.cargoNum}`}
@@ -89,6 +97,11 @@ export const AuctionCard = ({ auction, action, onPrefetch }: AuctionCardProps) =
         <Typography variant="body2" color="text.secondary">
           {auction.pricePerKm}
         </Typography>
+        {bidStep === undefined ? null : (
+          <Typography variant="body2" color="text.secondary">
+            Шаг: {bidStep}
+          </Typography>
+        )}
       </Box>
 
       <Tooltip title={action.reason} disableHoverListener={action.reason === ''}>

@@ -49,6 +49,27 @@ describe('страница списка: данные и состояния', ()
     expect(scope.getByRole('link', { name: /ставк/iu })).toBeInTheDocument();
   });
 
+  it('шаг ставки появляется в карточке после прогрева кэша наведением (㉑)', async () => {
+    // Шага нет в DTO списка вовсе: он приходит из detail, который греет
+    // prefetch по наведению. До наведения блока шага нет — прочерк на его
+    // месте читался бы как «шаг равен нулю».
+    const user = userEvent.setup();
+
+    await renderRouteAt('/auctions?per_page=1');
+
+    const cards = await findCards();
+    const card = cards[0];
+
+    expect(card).toBeDefined();
+    expect(within(card ?? cards[0]!).queryByText(/Шаг:/u)).not.toBeInTheDocument();
+
+    await user.hover(card ?? cards[0]!);
+
+    await waitFor(() => {
+      expect(within(card ?? cards[0]!).getByText(/Шаг:/u)).toBeInTheDocument();
+    });
+  });
+
   it('пустая выдача показывает подсказку про фильтры, а не пустой экран', async () => {
     await renderRouteAt(
       '/auctions?cargo_num=%D0%BD%D0%B5%D1%82-%D1%82%D0%B0%D0%BA%D0%BE%D0%B3%D0%BE',
