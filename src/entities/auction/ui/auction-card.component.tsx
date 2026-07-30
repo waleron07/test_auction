@@ -29,6 +29,31 @@ export interface AuctionCardProps {
   bidStep?: string | undefined;
 }
 
+/**
+ * Высота ряда бейджей: два ряда чипов.
+ *
+ * Число бейджей одинаково, а вот их подписи — нет: «Фиксированная цена» и
+ * «Не участвую» занимают вдвое больше места, чем «Торги идут», и ряд то
+ * переносится, то нет. Резервируем место под перенос всегда, иначе соседние
+ * карточки в сетке разъезжаются по вертикали на высоту одного чипа.
+ */
+const BADGES_MIN_HEIGHT = 60;
+
+/** Высота строки «цена за км · шаг»: она есть не всегда, место под неё — всегда. */
+const META_LINE_MIN_HEIGHT = 20;
+
+/**
+ * Собирает строку «цена за км · шаг».
+ *
+ * Шаг приходит из кэша detail и есть не всегда: пока его нет, строка остаётся
+ * короче, но её высота не меняется.
+ * @param pricePerKm Цена за километр, уже отформатированная маппером.
+ * @param bidStep Шаг ставки либо `undefined`, если detail ещё не загружен.
+ * @returns Готовая строка для подписи под ценой.
+ */
+const metaLine = (pricePerKm: string, bidStep: string | undefined): string =>
+  bidStep === undefined ? pricePerKm : `${pricePerKm} · Шаг: ${bidStep}`;
+
 /** Строка «подпись — значение» карточки. */
 const Field = ({ label, value }: { label: string; value: string }) => (
   <Box sx={{ minWidth: 0 }}>
@@ -49,6 +74,13 @@ const Field = ({ label, value }: { label: string; value: string }) => (
  * измерения, цена за км, признак своей ставки и primary action. Отсутствие
  * блока цены (㉛) уже превращено маппером в прочерк, поэтому разметка не
  * ветвится.
+ *
+ * **Высота блоков не зависит от длины текста.** В сетке карточки стоят рядом,
+ * и любая строка, которая переносится в одной карточке и не переносится в
+ * соседней, сдвигает вниз всё, что под ней: цены оказываются на разной высоте,
+ * кнопки — тоже. Поэтому длинные значения обрезаются многоточием (полный текст
+ * остаётся в `title`), а под переменные блоки — ряд бейджей и строку
+ * «цена за км · шаг» — место зарезервировано заранее.
  */
 export const AuctionCard = ({ auction, action, onPrefetch, bidStep }: AuctionCardProps) => (
   <Card
@@ -59,18 +91,33 @@ export const AuctionCard = ({ auction, action, onPrefetch, bidStep }: AuctionCar
     sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}
   >
     <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, flexGrow: 1 }}>
-      <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap', alignItems: 'center' }}>
+      <Stack
+        direction="row"
+        spacing={1}
+        useFlexGap
+        sx={{
+          flexWrap: 'wrap',
+          alignContent: 'flex-start',
+          minHeight: BADGES_MIN_HEIGHT,
+        }}
+      >
         <AuctionBadge badge={auction.status} />
         <AuctionBadge badge={auction.aucType} />
         <AuctionBadge badge={auction.tradingStatus} />
         {auction.hasMyBet ? <Chip label="Моя ставка" size="small" variant="outlined" /> : null}
       </Stack>
 
-      <Box>
+      <Box sx={{ minWidth: 0 }}>
         <Typography variant="h3" component="h2" noWrap title={auction.route}>
           {auction.route}
         </Typography>
-        <Typography variant="caption" color="text.secondary">
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          noWrap
+          component="p"
+          title={`Заявка ${auction.cargoNum} · ${auction.organizer}`}
+        >
           Заявка {auction.cargoNum} · {auction.organizer}
         </Typography>
       </Box>
@@ -90,18 +137,26 @@ export const AuctionCard = ({ auction, action, onPrefetch, bidStep }: AuctionCar
         <Field label="Кузов" value={auction.cargo.bodyType} />
       </Box>
 
-      <Box sx={{ mt: 'auto', display: 'flex', gap: 2, alignItems: 'baseline', flexWrap: 'wrap' }}>
-        <Typography variant="h3" component="p">
+      <Box sx={{ mt: 'auto', minWidth: 0 }}>
+        <Typography variant="h3" component="p" noWrap title={auction.price}>
           {auction.price}
         </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {auction.pricePerKm}
+        {/*
+          Цена за км и шаг — одной строкой фиксированной высоты. Раньше они
+          лежали рядом с ценой и переносились по-разному в зависимости от длины
+          суммы: в одной карточке шаг оказывался в строке цены, в соседней —
+          под ней, и низ карточек расходился.
+        */}
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          component="p"
+          noWrap
+          sx={{ minHeight: META_LINE_MIN_HEIGHT }}
+          title={metaLine(auction.pricePerKm, bidStep)}
+        >
+          {metaLine(auction.pricePerKm, bidStep)}
         </Typography>
-        {bidStep === undefined ? null : (
-          <Typography variant="body2" color="text.secondary">
-            Шаг: {bidStep}
-          </Typography>
-        )}
       </Box>
 
       <Tooltip title={action.reason} disableHoverListener={action.reason === ''}>

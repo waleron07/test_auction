@@ -55,13 +55,13 @@ export const formatDateRange = (
   const end = parseApiDateTime(to);
   const now = new Date();
 
-  if (start === null && end === null) return DASH;
+  // Задана одна граница или ни одной — стрелки нет.
+  if (start === null) {
+    return end === null ? DASH : format(end, patternFor(end, now), { locale: ru });
+  }
 
-  // Задана только одна граница — печатается она сама, без стрелки.
-  const single = start ?? end;
-
-  if (start === null || end === null || start.getTime() === end.getTime()) {
-    return single === null ? DASH : format(single, patternFor(single, now), { locale: ru });
+  if (end === null || start.getTime() === end.getTime()) {
+    return format(start, patternFor(start, now), { locale: ru });
   }
 
   const endPattern = isSameDay(start, end) ? TIME_ONLY : patternFor(end, now);

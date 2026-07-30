@@ -25,7 +25,7 @@ export const MAX_PER_PAGE = 100;
 const API_DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(([+-]\d{2}:\d{2})|Z)$/;
 
 /** Торговые статусы пользователя: все девять значений (③). */
-const TRADING_STATUSES = [
+export const TRADING_STATUSES = [
   'NotParticipating',
   'Leading',
   'Losing',
@@ -38,7 +38,7 @@ const TRADING_STATUSES = [
 ] as const satisfies readonly NonNullable<TradingStatusDto>[];
 
 /** Статусы аукциона, кодируемые для фильтра `statuses`: без `Unknown` (②). */
-const AUCTION_STATUSES = [
+export const AUCTION_STATUSES = [
   'Planning',
   'Auction',
   'DeterminateWinner',
@@ -50,7 +50,7 @@ const AUCTION_STATUSES = [
 ] as const satisfies readonly NonNullable<AuctionStatusDto>[];
 
 /** Типы аукциона, доступные фильтру: `Unknown` в его enum'е нет (③⑤). */
-const AUCTION_TYPES = [
+export const AUCTION_TYPES = [
   'Request',
   'Up',
   'Down',
@@ -160,3 +160,32 @@ export const auctionSearchSchema = z.object({
 
 /** Разобранное состояние фильтров страницы списка. */
 export type AuctionSearch = z.output<typeof auctionSearchSchema>;
+
+/** Ключи, которые считаются фильтрами: пагинация и сортировка сюда не входят. */
+export type AuctionFilterKey = Exclude<keyof AuctionSearch, 'page' | 'perPage' | 'sort'>;
+
+/**
+ * Пустое состояние всех фильтров.
+ *
+ * Один источник правды для двух операций, которые обязаны знать одинаковый
+ * список полей: сброса фильтров и подсчёта активных. Раньше перечень жил в
+ * трёх местах, и забытое поле не ловилось ни компилятором, ни тестом — оно
+ * просто переставало сбрасываться или переставало учитываться в бейдже.
+ *
+ * `satisfies` по всем ключам делает пропуск ошибкой компиляции, но сохраняет
+ * точные типы значений — иначе `status: []` перестал бы подходить фильтру.
+ */
+export const EMPTY_FILTERS = {
+  cargoNum: undefined,
+  status: [],
+  statuses: [],
+  aucType: [],
+  loadCity: undefined,
+  unloadCity: undefined,
+  loadDateFrom: undefined,
+  loadDateTo: undefined,
+  isAvailable: undefined,
+  isBidder: undefined,
+  priceFrom: undefined,
+  priceTo: undefined,
+} satisfies { [K in AuctionFilterKey]: AuctionSearch[K] };

@@ -1,17 +1,9 @@
 import FilterListIcon from '@mui/icons-material/FilterList';
-import {
-  Badge,
-  Box,
-  Button,
-  Drawer,
-  Paper,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
+import { Badge, Box, Button, Drawer, Paper, Typography } from '@mui/material';
 
 import { countActiveFilters } from '@/features/filter-auctions/lib/count-active-filters.util';
 import { type AuctionSearch } from '@/features/filter-auctions/model/auction-search.schema';
+import { useIsMobile } from '@/shared/config/breakpoints';
 
 import { useFiltersDrawerStore } from '../model/filters-drawer.store';
 
@@ -33,14 +25,15 @@ export interface AuctionFiltersProps {
  * поломка, а не как результат собственного фильтра.
  */
 export const AuctionFilters = ({ search, onChange }: AuctionFiltersProps) => {
-  const theme = useTheme();
-  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
+  // Условие ширины берётся из общей карты, а не пишется здесь: та же граница
+  // управляет колонкой сайдбара на странице списка, и два независимых
+  // медиазапроса разъехались бы на 900px — ни панели, ни кнопки.
+  const isMobile = useIsMobile();
   const isOpen = useFiltersDrawerStore((state) => state.isOpen);
   const open = useFiltersDrawerStore((state) => state.open);
   const close = useFiltersDrawerStore((state) => state.close);
-  const activeCount = countActiveFilters(search);
 
-  if (isDesktop) {
+  if (!isMobile) {
     return (
       <Paper component="aside" variant="outlined" sx={{ p: 2, position: 'sticky', top: 16 }}>
         <Typography variant="h3" component="h2" sx={{ mb: 2 }}>
@@ -50,6 +43,8 @@ export const AuctionFilters = ({ search, onChange }: AuctionFiltersProps) => {
       </Paper>
     );
   }
+
+  const activeCount = countActiveFilters(search);
 
   return (
     <Box>

@@ -1,4 +1,4 @@
-import { type AuctionListItemDto } from '@/shared/api/dto';
+import { type AuctionListItemDto, type AuctionStatusDto } from '@/shared/api/dto';
 
 /** Маршруты, на которые ведёт основное действие карточки. */
 type ActionTarget = '/auctions/$auctionUuid/bet' | '/auctions/$auctionUuid/bets';
@@ -14,11 +14,25 @@ export interface PrimaryAction {
   reason: string;
 }
 
-/** Статусы, при которых торги закончились: ставить уже нельзя. */
-const CLOSED_STATUS_REASONS: Partial<Record<string, string>> = {
+/**
+ * Статусы, при которых торги закончились: ставить уже нельзя.
+ *
+ * Ключи типизированы значениями enum'а, а не `string`: иначе переименование
+ * статуса в схеме тихо превратило бы «кнопка отключена с причиной» в
+ * «кнопка активна», и заметить это было бы нечем.
+ */
+const CLOSED_STATUS_REASONS: Partial<Record<NonNullable<AuctionStatusDto>, string>> = {
   Finished: 'Торги завершены.',
   Canceled: 'Аукцион отменён.',
   Stopped: 'Торги остановлены организатором.',
+};
+
+/** Действие по умолчанию: смотреть ставки можно всегда. */
+const VIEW_BETS: PrimaryAction = {
+  label: 'Смотреть ставки',
+  to: '/auctions/$auctionUuid/bets',
+  disabled: false,
+  reason: '',
 };
 
 /**
@@ -37,29 +51,15 @@ const CLOSED_STATUS_REASONS: Partial<Record<string, string>> = {
  */
 export const resolvePrimaryAction = (item: AuctionListItemDto): PrimaryAction => {
   const trading = item.trading;
-  const closedReason = CLOSED_STATUS_REASONS[trading?.status ?? ''];
+  const status = trading?.status;
+  const closedReason = status === undefined ? undefined : CLOSED_STATUS_REASONS[status];
 
-  if (closedReason !== undefined) {
-    return {
-      label: 'Смотреть ставки',
-      to: '/auctions/$auctionUuid/bets',
-      disabled: true,
-      reason: closedReason,
-    };
-  }
+  if (closedReason !== undefined) return { ...VIEW_BETS, disabled: true, reason: closedReason };
 
-  // Данных о своей ставке нет вовсе (㉛): подписать кнопку «Сделать» или
-  // «Изменить» нечем — обе подписи были бы догадкой. Ведём смотреть ставки.
-  if (trading?.your === null || trading?.your === undefined) {
-    return {
-      label: 'Смотреть ставки',
-      to: '/auctions/$auctionUuid/bets',
-      disabled: false,
-      reason: '',
-    };
-  }
-
-  if (trading.can_set_bet === true) {
+  // Ставить можно только когда это разрешено **и** известно, есть ли своя
+  // ставка: при пустом `your` (㉛) подпись «Сделать» или «Изменить» была бы
+  // догадкой, поэтому карточка ведёт смотреть ставки.
+  if (trading?.can_set_bet === true && trading.your !== null && trading.your !== undefined) {
     return {
       label: trading.your.bet === true ? 'Изменить ставку' : 'Сделать ставку',
       to: '/auctions/$auctionUuid/bet',
@@ -68,11 +68,5 @@ export const resolvePrimaryAction = (item: AuctionListItemDto): PrimaryAction =>
     };
   }
 
-  // Ставить нельзя — смотреть ставки можно всегда.
-  return {
-    label: 'Смотреть ставки',
-    to: '/auctions/$auctionUuid/bets',
-    disabled: false,
-    reason: '',
-  };
+  return VIEW_BETS;
 };

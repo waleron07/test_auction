@@ -27,9 +27,8 @@ export const AuctionsListPage = ({ search }: AuctionsListPageProps) => {
   const { data, isPending, isError, error, refetch, isPlaceholderData } = useAuctionsList(search);
 
   const items = data?.data ?? [];
-  const meta = data?.meta;
-  const lastPage = meta?.last_page ?? 1;
-  const total = meta?.total ?? 0;
+  const lastPage = data?.meta?.last_page ?? 1;
+  const total = data?.meta?.total ?? 0;
 
   return (
     <Box
@@ -40,12 +39,7 @@ export const AuctionsListPage = ({ search }: AuctionsListPageProps) => {
         gridTemplateColumns: { xs: '1fr', md: 'minmax(260px, 320px) minmax(0, 1fr)' },
       }}
     >
-      <AuctionFilters
-        search={search}
-        onChange={(patch) => {
-          syncFilters(patch);
-        }}
-      />
+      <AuctionFilters search={search} onChange={syncFilters} />
 
       <Stack spacing={2} sx={{ minWidth: 0 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -59,31 +53,33 @@ export const AuctionsListPage = ({ search }: AuctionsListPageProps) => {
           )}
         </Box>
 
-        {isPending ? <AuctionCardListSkeleton /> : null}
-
-        {isError ? (
+        {/*
+          Состояния взаимоисключающие, поэтому это одна цепочка, а не четыре
+          соседних блока с тройным отрицанием в последнем условии. Порядок —
+          решение: ошибка важнее устаревших данных, поэтому при сбое
+          показывается она, а не прежняя выдача под баннером.
+        */}
+        {isPending ? (
+          <AuctionCardListSkeleton />
+        ) : isError ? (
           <ApiErrorState
             error={error}
             onRetry={() => {
               void refetch();
             }}
           />
-        ) : null}
-
-        {!isPending && !isError && items.length === 0 ? (
+        ) : items.length === 0 ? (
           <EmptyState
             title="Аукционы не найдены"
             message="По выбранным фильтрам ничего нет. Попробуйте смягчить условия или сбросить фильтры."
           />
-        ) : null}
-
-        {items.length > 0 ? (
+        ) : (
           // Полупрозрачность вместо скелетона: данные предыдущей страницы
           // остаются читаемыми, но видно, что идёт обновление.
           <Box sx={{ opacity: isPlaceholderData ? 0.6 : 1, transition: 'opacity 150ms' }}>
             <AuctionCardList items={items} />
           </Box>
-        ) : null}
+        )}
 
         {lastPage > 1 ? (
           <Stack sx={{ pt: 1, alignItems: 'center' }}>

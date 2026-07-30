@@ -1,41 +1,34 @@
-import {
-  Autocomplete,
-  Box,
-  Button,
-  Chip,
-  FormControlLabel,
-  MenuItem,
-  Select,
-  Switch,
-  TextField,
-} from '@mui/material';
+import { Autocomplete, Box, Button, FormControlLabel, Switch, TextField } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers';
 import { useRef, useState } from 'react';
 
-import { type AuctionSearch } from '@/features/filter-auctions/model/auction-search.schema';
 import {
-  type AuctionStatusDto,
-  type AuctionTypeDto,
-  type TradingStatusDto,
-} from '@/shared/api/dto';
+  AUCTION_STATUSES,
+  AUCTION_TYPES,
+  type AuctionSearch,
+  EMPTY_FILTERS,
+  TRADING_STATUSES,
+} from '@/features/filter-auctions/model/auction-search.schema';
 import { CITIES } from '@/shared/config/cities';
 import { parseApiDateTime } from '@/shared/lib/date/parse-api-date-time.util';
 import { toApiDateTime } from '@/shared/lib/date/to-api-date-time.util';
-import { AUCTION_STATUS_CODE, AUCTION_STATUS_DICT } from '@/shared/lib/enums/auction-status.dict';
+import { AUCTION_STATUS_DICT } from '@/shared/lib/enums/auction-status.dict';
 import { AUCTION_TYPE_DICT } from '@/shared/lib/enums/auction-type.dict';
 import { TRADING_STATUS_DICT } from '@/shared/lib/enums/trading-status.dict';
+
+import { EnumMultiSelect } from './enum-multi-select.component';
 
 /** Задержка перед записью текста в URL: адрес не должен меняться на каждую букву. */
 const TEXT_DEBOUNCE_MS = 400;
 
-/** Статусы аукциона, у которых есть числовой код для фильтра (②). */
-const FILTERABLE_AUCTION_STATUSES = Object.keys(AUCTION_STATUS_CODE) as AuctionStatusDto[];
-
-/** Типы аукциона, доступные фильтру: `Unknown` в его enum'е нет (③⑤). */
-const FILTERABLE_AUCTION_TYPES: AuctionTypeDto[] = ['Request', 'Up', 'Down', 'FixPrice'];
-
-/** Торговые статусы: все девять, включая три, которых нет в проекции списка (③). */
-const FILTERABLE_TRADING_STATUSES = Object.keys(TRADING_STATUS_DICT) as TradingStatusDto[];
+/**
+ * Списки значений берутся из той же схемы, что разбирает URL.
+ *
+ * Иначе получаются два независимых источника: фильтр, который можно выставить
+ * ссылкой, но нельзя выбрать в интерфейсе, — или наоборот, значение в
+ * выпадающем списке, которое разбор молча выбросит.
+ */
+const CITY_NAMES = CITIES.map((city) => city.name);
 
 export interface AuctionFiltersFormProps {
   /** Текущее состояние фильтров из URL. */
@@ -99,87 +92,39 @@ export const AuctionFiltersForm = ({ search, onChange }: AuctionFiltersFormProps
         slotProps={{ htmlInput: { 'aria-label': 'Номер заявки' } }}
       />
 
-      <Select
-        multiple
-        size="small"
-        displayEmpty
+      <EnumMultiSelect
+        label="Мой статус в торгах"
+        options={TRADING_STATUSES}
+        dict={TRADING_STATUS_DICT}
         value={search.status}
-        onChange={(event) => {
-          onChange({ status: event.target.value as TradingStatusDto[] });
+        onChange={(status) => {
+          onChange({ status });
         }}
-        renderValue={(selected) =>
-          selected.length === 0 ? (
-            'Мой статус в торгах'
-          ) : (
-            <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-              {selected.map((value) => (
-                <Chip key={value} size="small" label={TRADING_STATUS_DICT[value].label} />
-              ))}
-            </Box>
-          )
-        }
-        slotProps={{ input: { 'aria-label': 'Мой статус в торгах' } }}
-      >
-        {FILTERABLE_TRADING_STATUSES.map((value) => (
-          <MenuItem key={value} value={value}>
-            {TRADING_STATUS_DICT[value].label}
-          </MenuItem>
-        ))}
-      </Select>
+      />
 
-      <Select
-        multiple
-        size="small"
-        displayEmpty
+      <EnumMultiSelect
+        label="Статус аукциона"
+        options={AUCTION_STATUSES}
+        dict={AUCTION_STATUS_DICT}
         value={search.statuses}
-        onChange={(event) => {
-          onChange({ statuses: event.target.value as AuctionSearch['statuses'] });
+        onChange={(statuses) => {
+          onChange({ statuses });
         }}
-        renderValue={(selected) =>
-          selected.length === 0 ? (
-            'Статус аукциона'
-          ) : (
-            <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-              {selected.map((value) => (
-                <Chip key={value} size="small" label={AUCTION_STATUS_DICT[value].label} />
-              ))}
-            </Box>
-          )
-        }
-        slotProps={{ input: { 'aria-label': 'Статус аукциона' } }}
-      >
-        {FILTERABLE_AUCTION_STATUSES.map((value) => (
-          <MenuItem key={value} value={value}>
-            {AUCTION_STATUS_DICT[value].label}
-          </MenuItem>
-        ))}
-      </Select>
+      />
 
-      <Select
-        multiple
-        size="small"
-        displayEmpty
+      <EnumMultiSelect
+        label="Тип аукциона"
+        options={AUCTION_TYPES}
+        dict={AUCTION_TYPE_DICT}
         value={search.aucType}
-        onChange={(event) => {
-          onChange({ aucType: event.target.value as AuctionSearch['aucType'] });
+        onChange={(aucType) => {
+          onChange({ aucType });
         }}
-        renderValue={(selected) =>
-          selected.length === 0
-            ? 'Тип аукциона'
-            : selected.map((value) => AUCTION_TYPE_DICT[value].label).join(', ')
-        }
-        slotProps={{ input: { 'aria-label': 'Тип аукциона' } }}
-      >
-        {FILTERABLE_AUCTION_TYPES.map((value) => (
-          <MenuItem key={value} value={value}>
-            {AUCTION_TYPE_DICT[value].label}
-          </MenuItem>
-        ))}
-      </Select>
+      />
 
       <Autocomplete
         size="small"
-        options={CITIES.map((city) => city.name)}
+        options={CITY_NAMES}
         value={search.loadCity ?? null}
         onChange={(_, value) => {
           onChange({ loadCity: value ?? undefined });
@@ -189,7 +134,7 @@ export const AuctionFiltersForm = ({ search, onChange }: AuctionFiltersFormProps
 
       <Autocomplete
         size="small"
-        options={CITIES.map((city) => city.name)}
+        options={CITY_NAMES}
         value={search.unloadCity ?? null}
         onChange={(_, value) => {
           onChange({ unloadCity: value ?? undefined });
@@ -276,20 +221,7 @@ export const AuctionFiltersForm = ({ search, onChange }: AuctionFiltersFormProps
           clearTimeout(debounceRef.current);
           priceRef.current = { from: undefined, to: undefined };
           setResetToken((token) => token + 1);
-          onChange({
-            cargoNum: undefined,
-            status: [],
-            statuses: [],
-            aucType: [],
-            loadCity: undefined,
-            unloadCity: undefined,
-            loadDateFrom: undefined,
-            loadDateTo: undefined,
-            isAvailable: undefined,
-            isBidder: undefined,
-            priceFrom: undefined,
-            priceTo: undefined,
-          });
+          onChange(EMPTY_FILTERS);
         }}
       >
         Сбросить фильтры
