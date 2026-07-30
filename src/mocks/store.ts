@@ -1,4 +1,5 @@
 import { type BetItemDto } from '@/shared/api/dto';
+import { useCurrentUserStore } from '@/shared/model/current-user.store';
 
 import { rankBets } from './lib/bet-ranking.util';
 import { addMinutesToNaive, toNaiveDateTime } from './lib/naive-date.util';
@@ -9,13 +10,14 @@ import { createSeed } from './seed';
 /**
  * «Моя личность» в моках.
  *
- * Схема не содержит эндпоинта профиля, а `BetItem.organization_id` нужен,
- * чтобы отличить свою ставку от чужой и посчитать участников (⑬). Значения
- * фиксированные: тесты и UI должны опираться на одну и ту же личность.
+ * `subscriberId`/`organizationId` читаются из `shared/model/current-user.store`
+ * — единственного источника этих двух чисел в приложении (фаза 7): без
+ * этого мок и UI могли бы разойтись в личности молча, без ошибки типов.
+ * Остальные поля существуют только здесь — они нужны серверу-заглушке
+ * (имя контакта, ИНН), но не читаются прод-кодом ни в одном месте.
  */
 export const CURRENT_USER = {
-  subscriberId: 900_100,
-  organizationId: 700_100,
+  ...useCurrentUserStore.getState(),
   organizationName: 'ООО «Перевозчик Тест»',
   organizationInn: '7700123456',
   contactName: 'Иванов Иван',

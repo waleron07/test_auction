@@ -2,8 +2,9 @@ import { createFileRoute } from '@tanstack/react-router';
 
 import { auctionDetailQueryOptions, mapAuctionPermissions } from '@/entities/auction';
 import { auctionBetsQueryOptions } from '@/entities/bet';
+import { AuctionBetsPage } from '@/pages/auction-bets/ui/auction-bets-page.component';
 import { loadOrNotFound } from '@/shared/lib/router/load-or-not-found.util';
-import { ApiErrorState, EmptyState } from '@/shared/ui';
+import { ApiErrorState } from '@/shared/ui';
 
 /**
  * `/auctions/$auctionUuid/bets` — история ставок.
@@ -12,33 +13,26 @@ import { ApiErrorState, EmptyState } from '@/shared/ui';
  * detail (⑩⑪), у `GET /bets` серверного кода на этот случай нет. Параметр
  * `all: true` по умолчанию — иначе отменённые ставки не придут, и требуемые
  * заданием «признак отменённой ставки» и «причина отмены» показать будет нечем (㉙).
+ * Компонент страницы читает те же ключи повторно через `useAuctionBets` —
+ * `ensureQueryData` здесь только греет кэш, переключатель «Показывать
+ * отменённые» уже работает поверх обычного `useQuery` в хуке страницы.
  */
 export const Route = createFileRoute('/auctions/$auctionUuid/bets')({
   loader: async ({ context, params }) => {
     const detail = await loadOrNotFound(async () =>
       context.queryClient.ensureQueryData(auctionDetailQueryOptions(params.auctionUuid)),
     );
-    const hidden = mapAuctionPermissions(detail).hideBetsHistory;
 
-    if (hidden) return { hidden: true as const };
+    if (mapAuctionPermissions(detail).hideBetsHistory) return;
 
     await context.queryClient.ensureQueryData(
       auctionBetsQueryOptions({ auctionUuid: params.auctionUuid, all: true }),
     );
-
-    return { hidden: false as const };
   },
   errorComponent: ({ error, reset }) => <ApiErrorState error={error} onRetry={reset} />,
   component: function AuctionBetsRoute() {
-    const { hidden } = Route.useLoaderData();
+    const { auctionUuid } = Route.useParams();
 
-    return hidden ? (
-      <EmptyState
-        title="История ставок скрыта"
-        message="Организатор скрыл историю ставок по этому аукциону."
-      />
-    ) : (
-      <EmptyState title="Ставки" message="Данные загружены. Таблица ставок — фаза 7." />
-    );
+    return <AuctionBetsPage auctionUuid={auctionUuid} />;
   },
 });
