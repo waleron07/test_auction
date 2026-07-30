@@ -1,7 +1,8 @@
 import { createFileRoute, type SearchSchemaInput } from '@tanstack/react-router';
 
 import { parseAuctionSearch } from '@/features/filter-auctions/lib/parse-auction-search.util';
-import { ApiErrorState, EmptyState } from '@/shared/ui';
+import { AuctionsListPage } from '@/pages/auctions-list/ui/auctions-list-page.component';
+import { ApiErrorState } from '@/shared/ui';
 
 /**
  * `/auctions` — список аукционов.
@@ -21,10 +22,9 @@ export const Route = createFileRoute('/auctions/')({
   // список — включая «К списку аукционов» из экранов ошибок.
   validateSearch: (input: Record<string, unknown> & SearchSchemaInput) => parseAuctionSearch(input),
   errorComponent: ({ error, reset }) => <ApiErrorState error={error} onRetry={reset} />,
-  component: () => (
-    <EmptyState
-      title="Аукционы"
-      message="Фильтры разбираются из URL. Список, карточки и пагинация — фаза 5."
-    />
-  ),
+  component: function AuctionsListRoute() {
+    const search = Route.useSearch();
+
+    return <AuctionsListPage search={search} />;
+  },
 });
