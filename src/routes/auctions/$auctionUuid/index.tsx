@@ -1,8 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router';
 
 import { auctionDetailQueryOptions } from '@/entities/auction';
+import { AuctionDetailPage } from '@/pages/auction-detail/ui/auction-detail-page.component';
 import { loadOrNotFound } from '@/shared/lib/router/load-or-not-found.util';
-import { ApiErrorState, EmptyState, NotFound } from '@/shared/ui';
+import { ApiErrorState, NotFound } from '@/shared/ui';
 
 /**
  * `/auctions/$auctionUuid` — детальная страница.
@@ -24,13 +25,8 @@ export const Route = createFileRoute('/auctions/$auctionUuid/')({
   errorComponent: ({ error, reset }) => <ApiErrorState error={error} onRetry={reset} />,
   notFoundComponent: () => <NotFound message="Аукцион не найден или снят с торгов." />,
   component: function AuctionDetailRoute() {
-    const auction = Route.useLoaderData();
+    const { auctionUuid } = Route.useParams();
 
-    return (
-      <EmptyState
-        title={`Аукцион ${auction.main.cargo_num ?? ''}`}
-        message="Данные загружены loader'ом. Разделы маршрута, груза и торгов — фаза 6."
-      />
-    );
+    return <AuctionDetailPage auctionUuid={auctionUuid} />;
   },
 });

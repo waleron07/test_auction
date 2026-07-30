@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { auctionDetailQueryOptions } from '@/entities/auction';
+import { auctionDetailQueryOptions, mapAuctionPermissions } from '@/entities/auction';
 import { auctionBetsQueryOptions } from '@/entities/bet';
 import { loadOrNotFound } from '@/shared/lib/router/load-or-not-found.util';
 import { ApiErrorState, EmptyState } from '@/shared/ui';
@@ -18,7 +18,7 @@ export const Route = createFileRoute('/auctions/$auctionUuid/bets')({
     const detail = await loadOrNotFound(async () =>
       context.queryClient.ensureQueryData(auctionDetailQueryOptions(params.auctionUuid)),
     );
-    const hidden = detail.hide_bets_history === true || detail.trading.hide_bets_history === true;
+    const hidden = mapAuctionPermissions(detail).hideBetsHistory;
 
     if (hidden) return { hidden: true as const };
 

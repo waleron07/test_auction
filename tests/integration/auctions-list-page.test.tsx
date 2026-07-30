@@ -90,10 +90,14 @@ describe('страница списка: данные и состояния', ()
         expect(scope.getByText(label)).toBeInTheDocument();
       }
 
-      // Ровно один заголовок маршрута и одно основное действие: ссылка, если
-      // действие доступно, и отключённая кнопка, если торги закрыты.
-      expect(scope.getAllByRole('heading', { level: 2 })).toHaveLength(1);
-      expect(scope.queryAllByRole('link').length + scope.queryAllByRole('button').length).toBe(1);
+      // Ровно один заголовок маршрута, и он же — ссылка на детальную страницу.
+      const heading = scope.getByRole('heading', { level: 2 });
+      expect(within(heading).getAllByRole('link')).toHaveLength(1);
+
+      // Плюс одно основное действие: ссылка, если действие доступно, и
+      // отключённая кнопка, если торги закрыты. Итого два интерактивных
+      // элемента на карточку всегда, вне зависимости от текста и статуса.
+      expect(scope.queryAllByRole('link').length + scope.queryAllByRole('button').length).toBe(2);
     }
   });
 

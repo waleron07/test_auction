@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { auctionDetailQueryOptions } from '@/entities/auction';
+import { auctionDetailQueryOptions, mapAuctionPermissions } from '@/entities/auction';
 import { loadOrNotFound } from '@/shared/lib/router/load-or-not-found.util';
 import { ApiErrorState, EmptyState } from '@/shared/ui';
 
@@ -23,7 +23,7 @@ export const Route = createFileRoute('/auctions/$auctionUuid/bet')({
   component: function PlaceBetRoute() {
     const auction = Route.useLoaderData();
 
-    return auction.trading.can_set_bet === true ? (
+    return mapAuctionPermissions(auction).canSetBet ? (
       <EmptyState title="Ставка" message="Форма ставки — фаза 8." />
     ) : (
       <EmptyState

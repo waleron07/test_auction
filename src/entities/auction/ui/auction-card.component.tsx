@@ -75,6 +75,13 @@ const Field = ({ label, value }: { label: string; value: string }) => (
  * блока цены (㉛) уже превращено маппером в прочерк, поэтому разметка не
  * ветвится.
  *
+ * **Заголовок маршрута — ссылка на детальную страницу.** Primary action ведёт
+ * на `/bet` или `/bets`, а не на саму карточку аукциона — переход к разделам
+ * detail (маршрут, груз, торги) идёт через заголовок, обычный `<Link>` без
+ * прокидывания через MUI `component` (та же generic-проблема, что решена
+ * `createLink` для `RouterButton` — здесь дешевле обойти её, вложив `<Link>`
+ * простым потомком `Typography`, а не через её `component`).
+ *
  * **Высота блоков не зависит от длины текста.** В сетке карточки стоят рядом,
  * и любая строка, которая переносится в одной карточке и не переносится в
  * соседней, сдвигает вниз всё, что под ней: цены оказываются на разной высоте,
@@ -109,7 +116,13 @@ export const AuctionCard = ({ auction, action, onPrefetch, bidStep }: AuctionCar
 
       <Box sx={{ minWidth: 0 }}>
         <Typography variant="h3" component="h2" noWrap title={auction.route}>
-          {auction.route}
+          <Link
+            to="/auctions/$auctionUuid"
+            params={{ auctionUuid: auction.orderUid }}
+            style={{ color: 'inherit' }}
+          >
+            {auction.route}
+          </Link>
         </Typography>
         <Typography
           variant="caption"
