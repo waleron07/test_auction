@@ -40,7 +40,9 @@ export default defineConfig({
         test: {
           name: 'integration',
           environment: 'jsdom',
-          include: ['tests/**/*.test.tsx'],
+          // И .ts, и .tsx: часть интеграционных тестов проверяет связку
+          // «клиент → HTTP → мок» без рендера, и JSX им не нужен.
+          include: ['tests/**/*.test.{ts,tsx}'],
           setupFiles: ['./tests/setup.ts'],
         },
       },
