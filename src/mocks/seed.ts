@@ -240,8 +240,10 @@ const createEntity = (spec: AuctionSpec): AuctionEntity => {
           start_no_vat: hideNoVat ? null : noVat(current),
           current,
           current_no_vat: hideNoVat ? null : noVat(current),
-          available: nextAvailablePrice(current, step, aucType),
-          available_no_vat: hideNoVat ? null : noVat(nextAvailablePrice(current, step, aucType)),
+          available: nextAvailablePrice(current, step, aucType, { min, max }),
+          available_no_vat: hideNoVat
+            ? null
+            : noVat(nextAvailablePrice(current, step, aucType, { min, max })),
           min,
           min_no_vat: hideNoVat ? null : noVat(min),
           max,
@@ -420,12 +422,27 @@ const createOtherBet = (
  * @param auctions Собранные аукционы.
  * @throws {Error} Если сид противоречит собственным правилам.
  */
-const assertSeedInvariants = (auctions: AuctionEntity[]): void => {
+const assertSeedInvariants = (auctions: AuctionEntity[], bets: [number, BetItemDto[]][]): void => {
   const seenUids = new Set<string>();
+  const betsByAuction = new Map(bets);
 
   for (const entity of auctions) {
     const orderUid = entity.detail.main.order_uid ?? '';
     const step = entity.detail.trading.price?.step ?? null;
+
+    // `current` обязан совпадать с ценой лидирующей ставки: в контракте это
+    // одно и то же число. Расхождение не даёт ни ошибки типов, ни падения
+    // запроса — оно всплывает только на экране как «Проигрываю» при цене,
+    // равной своей же ставке, и ровно так и всплыло на аукционе типа `Up`.
+    const auctionBets = betsByAuction.get(entity.detail.main.id ?? 0) ?? [];
+    const winner = auctionBets.find((bet) => bet.place === 1);
+
+    if (winner !== undefined && winner.price_with_vat !== entity.detail.trading.price?.current) {
+      throw new Error(
+        `Инвариант сида: у ${orderUid} текущая цена ${String(entity.detail.trading.price?.current)} ` +
+          `не совпадает с ценой лидирующей ставки ${String(winner.price_with_vat)}.`,
+      );
+    }
 
     if (orderUid === '') {
       throw new Error('Инвариант сида: у аукциона пустой order_uid.');
@@ -439,6 +456,24 @@ const assertSeedInvariants = (auctions: AuctionEntity[]): void => {
 
     if (step !== null && step <= 0) {
       throw new Error(`Инвариант сида: шаг ставки должен быть больше нуля (${orderUid}).`);
+    }
+
+    // «Доступная» цена обязана быть допустимой: форма ставки подставляет её в
+    // поле по умолчанию, и значение за границами делало бы дефолт заведомо
+    // невалидным — ровно так `available` уходил на шаг ниже `min` у типов без
+    // ограничения направления (⑧).
+    const available = entity.detail.trading.price?.available ?? null;
+    const priceMin = entity.detail.trading.price?.min ?? null;
+    const priceMax = entity.detail.trading.price?.max ?? null;
+
+    if (
+      available !== null &&
+      ((priceMin !== null && available < priceMin) || (priceMax !== null && available > priceMax))
+    ) {
+      throw new Error(
+        `Инвариант сида: доступная цена ${String(available)} вне границ ` +
+          `[${String(priceMin)}, ${String(priceMax)}] (${orderUid}).`,
+      );
     }
   }
 };
@@ -558,20 +593,36 @@ export const createSeed = (): SeedData => {
       return;
     }
 
+    const aucType = entity.detail.main.auc_type ?? 'Unknown';
     const basePrice = entity.detail.trading.price?.current ?? 30_000;
+
+    /**
+     * Цена хуже лидирующей: на повышение — ниже, во всех прочих типах — выше.
+     * Направление обязано совпадать с `rankBets`, иначе «худшая» ставка
+     * окажется лучшей и займёт первое место.
+     */
+    const worse = (delta: number): number =>
+      aucType === 'Up' ? basePrice - delta : basePrice + delta;
+
     const auctionBets: BetItemDto[] = [
-      createOtherBet(betId++, auctionId, position, basePrice + 500),
-      createOtherBet(betId++, auctionId, position + 1, basePrice + 1_000),
+      // Лидирующая ставка стоит **ровно на текущей цене**: `current` в
+      // контракте и есть цена лучшей ставки. Раньше все ставки сида были
+      // выше `current` независимо от типа торгов — на аукционе `Up` это
+      // означало, что лучшая ставка (максимум) не совпадает с `current`, и
+      // после своей ставки перевозчик видел «Проигрываю» при цене, равной
+      // его собственной.
+      createOtherBet(betId++, auctionId, position, basePrice),
+      createOtherBet(betId++, auctionId, position + 1, worse(500)),
     ];
 
     // Отменённые ставки двух видов: по флагу и по непустой причине (⑫).
     if (position % 5 === 0 || entity.detail.main.order_uid === SEED_CASE_UIDS.withCanceledBets) {
       auctionBets.push(
-        createOtherBet(betId++, auctionId, position + 2, basePrice + 250, {
+        createOtherBet(betId++, auctionId, position + 2, worse(250), {
           is_rejected: true,
           cancel_reason: '',
         }),
-        createOtherBet(betId++, auctionId, position + 3, basePrice + 300, {
+        createOtherBet(betId++, auctionId, position + 3, worse(300), {
           is_rejected: false,
           cancel_reason: 'Отменена организатором: не пройдена аккредитация',
         }),
@@ -581,12 +632,12 @@ export const createSeed = (): SeedData => {
     // Места расставляются той же функцией, что и после ставки: иначе рейтинг
     // «до» и «после» считался бы по разным правилам (на повышение лучший —
     // максимум, а не минимум).
-    rankBets(auctionBets, entity.detail.main.auc_type ?? 'Unknown');
+    rankBets(auctionBets, aucType);
 
     bets.push([auctionId, auctionBets]);
   });
 
-  assertSeedInvariants(auctions);
+  assertSeedInvariants(auctions, bets);
 
   return { auctions, bets, nextBetId: betId };
 };

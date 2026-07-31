@@ -115,7 +115,9 @@ describe('страница списка: данные и состояния', ()
 
     await findCards();
 
-    const navigation = await screen.findByRole('navigation');
+    // Ландмарков навигации на странице два: шапка приложения и пагинация.
+    // Адресуемся по имени, а не «первый попавшийся nav».
+    const navigation = await screen.findByRole('navigation', { name: /pagination/iu });
 
     // 60+ аукционов по 10 на страницу: страниц заведомо больше одной.
     expect(

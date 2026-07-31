@@ -137,7 +137,10 @@ describe('mapAuctionDetail: детали груза', () => {
 
   it('способов погрузки нет — пустой массив, а не список из четырёх «нет»', () => {
     const withoutTypes = detail({
-      cargo: { ...detail().cargo, loading_types: { side: false, top: false, rear: false, full: false } },
+      cargo: {
+        ...detail().cargo,
+        loading_types: { side: false, top: false, rear: false, full: false },
+      },
     });
 
     expect(mapAuctionDetail(withoutTypes, 'with').cargo.loadingTypes).toEqual([]);
@@ -332,7 +335,9 @@ describe('mapAuctionDetail: цены и режим НДС', () => {
       trading: { ...detail().trading, price: { ...detail().trading.price, price_per_km: 1500 } },
     });
 
-    expect(mapAuctionDetail(withPricePerKm, 'with').trading.pricePerKm).toBe(`1${NBSP}500${NBSP}₽/км`);
+    expect(mapAuctionDetail(withPricePerKm, 'with').trading.pricePerKm).toBe(
+      `1${NBSP}500${NBSP}₽/км`,
+    );
   });
 
   it('pricePerKm: не задано — прочерк', () => {
@@ -407,7 +412,9 @@ describe('mapAuctionDetail: оплата, сборка, допущенные о�
   });
 
   it('условие оплаты передаётся как есть', () => {
-    const withCondition = detail({ payment: { ...detail().payment, condition: 'Оплата по факту' } });
+    const withCondition = detail({
+      payment: { ...detail().payment, condition: 'Оплата по факту' },
+    });
 
     expect(mapAuctionDetail(withCondition, 'with').payment.condition).toBe('Оплата по факту');
   });

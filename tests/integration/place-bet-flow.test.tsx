@@ -181,6 +181,47 @@ describe('Форма ставки — сквозной сценарий (8.5)', 
     expect(await screen.findByRole('alert')).toHaveTextContent('Upstream временно недоступен.');
   });
 
+  it('«Изменить ставку»: поле подставляет мою последнюю цену, а не доступную', async () => {
+    const user = userEvent.setup();
+    const before = await getAuction(orderUid);
+    const step = before.trading.price?.step ?? 500;
+    const myPrice = (before.trading.price?.current ?? 0) - step;
+
+    await postAuctionBet({ auctionUuid: orderUid, price: myPrice });
+
+    const after = await getAuction(orderUid);
+
+    // Предпосылка теста: «доступная» цена отличается от моей ставки, иначе
+    // проверка прошла бы и при неверной реализации.
+    expect(after.trading.price?.available).not.toBe(myPrice);
+
+    await renderRouteAt(`/auctions/${orderUid}/bet`);
+
+    const priceInput = await screen.findByRole('spinbutton', { name: 'Цена ставки' });
+
+    expect(priceInput).toHaveValue(myPrice);
+
+    // И это значение рабочее: отправка без правки не должна падать валидацией
+    // на ровном месте — правка своей ставки начинается с неё же.
+    await user.tab();
+
+    expect(screen.queryByText(/Цена не может быть|должна быть/iu)).not.toBeInTheDocument();
+  });
+
+  it('первая ставка по аукциону подставляет доступную цену — и она валидна', async () => {
+    const before = await getAuction(orderUid);
+    const available = before.trading.price?.available ?? 0;
+
+    expect(before.trading.your?.bet).toBe(false);
+    // «Доступная» цена обязана лежать в границах: иначе дефолт формы невалиден.
+    expect(available).toBeGreaterThanOrEqual(before.trading.price?.min ?? 0);
+    expect(available).toBeLessThanOrEqual(before.trading.price?.max ?? Number.POSITIVE_INFINITY);
+
+    await renderRouteAt(`/auctions/${orderUid}/bet`);
+
+    expect(await screen.findByRole('spinbutton', { name: 'Цена ставки' })).toHaveValue(available);
+  });
+
   it('форма недоступна без права на ставку — маршрут показывает объяснение (8.1)', async () => {
     await renderRouteAt(`/auctions/${SEED_CASE_UIDS.notBiddable}/bet`);
 

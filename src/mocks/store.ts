@@ -141,16 +141,28 @@ export const placeBet = (entity: AuctionEntity, price: number): PlaceBetResult =
   const step = trading.price?.step ?? null;
   const distance = entity.detail.cargo.distance ?? null;
 
-  const nextPrice = nextAvailablePrice(price, step, aucType);
+  // `current` — цена **лучшей** ставки, а не последней сделанной. Ставить сюда
+  // цену только что поданной ставки нельзя: у `Request` направление торгов не
+  // ограничено (⑧), поэтому ставка законно может оказаться хуже лидирующей, и
+  // тогда текущая цена «откатилась» бы к худшему значению, противореча
+  // рейтингу в истории ставок.
+  const winner = bets.find((candidate) => candidate.place === 1);
+  const currentPrice = winner?.price_with_vat ?? price;
+  const currentNoVat = winner?.price_no_vat ?? priceNoVat;
+
+  const nextPrice = nextAvailablePrice(currentPrice, step, aucType, {
+    min: trading.price?.min ?? null,
+    max: trading.price?.max ?? null,
+  });
 
   trading.price = {
     ...trading.price,
-    current: price,
-    current_no_vat: priceNoVat,
+    current: currentPrice,
+    current_no_vat: currentNoVat,
     // Доступная цена — следующая допустимая: шаг в сторону торгов.
     available: nextPrice,
     available_no_vat: noVat(nextPrice),
-    price_per_km: pricePerKm(priceNoVat, distance),
+    price_per_km: pricePerKm(currentNoVat, distance),
   };
 
   // rankBets мутирует те же объекты, что лежат в bets: искать свою ставку заново незачем.

@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { getAuction, postAuctionsList } from '@/entities/auction';
 import { getAuctionBets, postAuctionBet } from '@/entities/bet';
 import { isBetCanceled } from '@/mocks/lib/bet-ranking.util';
-import { SEED_CASE_UIDS } from '@/mocks/seed';
-import { resetStore } from '@/mocks/store';
+import { ERROR_TRIGGER_UIDS, SEED_CASE_UIDS } from '@/mocks/seed';
+import { CURRENT_USER, resetStore } from '@/mocks/store';
 
 /**
  * Сквозной сценарий ставки против MSW — критерий готовности фазы 3.
@@ -99,6 +99,86 @@ describe('MSW: состояние меняется после ставки', () 
     const after = await getAuction(orderUid);
 
     expect(after.trading.stop_time).not.toBe(stopBefore);
+  });
+});
+
+describe('MSW: current — цена лучшей ставки, а не последней (регрессия)', () => {
+  beforeEach(() => {
+    resetStore();
+  });
+
+  /**
+   * Дефект, найденный на демонстрации: на аукционе **на повышение** перевозчик
+   * ставил допустимую цену и получал «Проигрываю» при том, что `current` был
+   * равен его же ставке. Причина — в сиде ни одна ставка не стояла на текущей
+   * цене: все были выше `current` независимо от типа торгов, поэтому у `Up`
+   * лучшая (максимальная) ставка не совпадала с `current`.
+   */
+  it('на аукционе Up ставка выше текущей делает лидером, а не проигрывающим', async () => {
+    const list = await postAuctionsList({ page: 1, per_page: 100 });
+    const item = list.data?.find(
+      (candidate) => candidate.main?.auc_type === 'Up' && candidate.trading?.can_set_bet === true,
+    );
+    const orderUid = item?.main?.order_uid ?? '';
+    const before = await getAuction(orderUid);
+    const step = before.trading.price?.step ?? 500;
+    const myPrice = (before.trading.price?.current ?? 0) + step;
+
+    await postAuctionBet({ auctionUuid: orderUid, price: myPrice });
+
+    const after = await getAuction(orderUid);
+
+    expect(after.trading.status_mobile).toBe('Leading');
+    expect(after.trading.price?.current).toBe(myPrice);
+    expect(after.trading.your?.win).toBe(true);
+  });
+
+  it.each(['Request', 'Up', 'Down', 'FixPrice'])(
+    'в сиде %s текущая цена совпадает с ценой лидирующей ставки',
+    async (aucType) => {
+      const list = await postAuctionsList({ page: 1, per_page: 100 });
+      // Аукционы-триггеры ошибок исключены: они по замыслу отвечают 401/503 на
+      // любой запрос, и обойти их означало бы проверять не инвариант сида (⑰).
+      const triggers = new Set<string>(Object.values(ERROR_TRIGGER_UIDS));
+      const items = (list.data ?? []).filter(
+        (candidate) =>
+          candidate.main?.auc_type === aucType && !triggers.has(candidate.main.order_uid ?? ''),
+      );
+
+      expect(items.length).toBeGreaterThan(0);
+
+      for (const item of items) {
+        const orderUid = item.main?.order_uid ?? '';
+        const { bets } = await getAuctionBets({ auctionUuid: orderUid, all: true });
+        const winner = bets.find((bet) => bet.place === 1);
+
+        if (winner === undefined) continue;
+
+        const detail = await getAuction(orderUid);
+
+        expect(detail.trading.price?.current).toBe(winner.price_with_vat);
+      }
+    },
+  );
+
+  it('несколько своих ставок подряд накапливаются в истории', async () => {
+    const orderUid = SEED_CASE_UIDS.biddableProlonged;
+    const before = await getAuction(orderUid);
+    const step = before.trading.price?.step ?? 500;
+    let price = before.trading.price?.current ?? 0;
+
+    for (let index = 0; index < 3; index += 1) {
+      price -= step;
+      await postAuctionBet({ auctionUuid: orderUid, price });
+    }
+
+    const { bets } = await getAuctionBets({ auctionUuid: orderUid, all: true });
+    const mine = bets.filter((bet) => bet.subscriber_id === CURRENT_USER.subscriberId);
+
+    // Ставки именно накапливаются, а не заменяют друг друга: история торгов —
+    // это все ставки, а не последняя от каждого участника.
+    expect(mine).toHaveLength(3);
+    expect(mine.map((bet) => bet.price_with_vat)).toEqual([price + 2 * step, price + step, price]);
   });
 });
 

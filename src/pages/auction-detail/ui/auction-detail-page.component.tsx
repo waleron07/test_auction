@@ -73,7 +73,11 @@ export const AuctionDetailPage = ({ auctionUuid }: AuctionDetailPageProps) => {
         )}
       </Stack>
 
-      <AuctionSummary auctionUuid={auctionUuid} trading={auction.trading} permissions={auction.permissions} />
+      <AuctionSummary
+        auctionUuid={auctionUuid}
+        trading={auction.trading}
+        permissions={auction.permissions}
+      />
     </Box>
   );
 };

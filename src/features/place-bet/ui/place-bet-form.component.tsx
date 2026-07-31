@@ -24,6 +24,11 @@ export interface PlaceBetFormProps {
   price: AuctionShowTradingPriceDto | undefined;
   aucType: AuctionTypeDto;
   bidMeasurementType: BidMeasurementTypeDto | null | undefined;
+  /**
+   * Своя последняя ставка (`trading.your.last_bet_with_vat`), если она есть.
+   * Именно она подставляется в поле при входе в режим «Изменить ставку».
+   */
+  myLastBet: number | null;
   /** Закрыть форму без отправки — тот же переход, что и у `Dialog.onClose`/крестика. */
   onClose: () => void;
 }
@@ -45,6 +50,7 @@ export const PlaceBetForm = ({
   price,
   aucType,
   bidMeasurementType,
+  myLastBet,
   onClose,
 }: PlaceBetFormProps) => {
   const [generalError, setGeneralError] = useState<string | null>(null);
@@ -54,7 +60,12 @@ export const PlaceBetForm = ({
   );
   const step = price?.step ?? null;
   const safeStep = step !== null && step > 0 ? step : null;
-  const defaultPrice = price?.available ?? price?.current ?? 0;
+
+  // Своя ставка важнее «доступной» цены: в режиме «Изменить ставку» поле
+  // обязано показывать то, что перевозчик уже поставил, а не подсказку
+  // системы — иначе правка своей ставки начинается со стирания чужого числа.
+  // `available` остаётся дефолтом только для первой ставки по аукциону.
+  const defaultPrice = myLastBet ?? price?.available ?? price?.current ?? 0;
 
   const {
     control,

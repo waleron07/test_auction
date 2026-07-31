@@ -4,3 +4,8 @@ public/mockServiceWorker.js
 src/shared/api/generated
 src/app/router/route-tree.gen.ts
 package-lock.json
+
+# Схема OpenAPI — источник правды, пришедший извне. Её диффы не должны быть
+# нашими: переформатирование затруднит сверку с оригиналом, который присылает
+# заказчик, и создаст шум при обновлении контракта.
+openapi

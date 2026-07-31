@@ -1,9 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router';
 
 import { auctionDetailQueryOptions, mapAuctionPermissions } from '@/entities/auction';
-import { PlaceBetPage } from '@/pages/place-bet';
+import { PlaceBetPage, PlaceBetUnavailable } from '@/pages/place-bet';
 import { loadOrNotFound } from '@/shared/lib/router/load-or-not-found.util';
-import { ApiErrorState, EmptyState, RouterButton } from '@/shared/ui';
+import { ApiErrorState } from '@/shared/ui';
 
 /**
  * `/auctions/$auctionUuid/bet` — установка ставки.
@@ -30,20 +30,10 @@ export const Route = createFileRoute('/auctions/$auctionUuid/bet')({
     const { auctionUuid } = Route.useParams();
     const auction = Route.useLoaderData();
 
-    if (!mapAuctionPermissions(auction).canSetBet) {
-      return (
-        <EmptyState
-          title="Ставка недоступна"
-          message="По этому аукциону ставки сейчас не принимаются."
-          action={
-            <RouterButton to="/auctions/$auctionUuid" params={{ auctionUuid }} variant="outlined">
-              Назад к аукциону
-            </RouterButton>
-          }
-        />
-      );
-    }
-
-    return <PlaceBetPage auctionUuid={auctionUuid} />;
+    return mapAuctionPermissions(auction).canSetBet ? (
+      <PlaceBetPage auctionUuid={auctionUuid} />
+    ) : (
+      <PlaceBetUnavailable auctionUuid={auctionUuid} />
+    );
   },
 });

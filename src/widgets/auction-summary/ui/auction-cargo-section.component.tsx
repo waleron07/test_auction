@@ -27,7 +27,12 @@ export const AuctionCargoSection = ({ cargo }: AuctionCargoSectionProps) => (
         <FieldRow
           label="Загрузка"
           value={
-            <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <Stack
+              direction="row"
+              spacing={0.5}
+              useFlexGap
+              sx={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}
+            >
               {cargo.loadingTypes.map((label) => (
                 <Chip key={label} size="small" label={label} />
               ))}
@@ -40,7 +45,12 @@ export const AuctionCargoSection = ({ cargo }: AuctionCargoSectionProps) => (
         <FieldRow
           label="Документы"
           value={
-            <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <Stack
+              direction="row"
+              spacing={0.5}
+              useFlexGap
+              sx={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}
+            >
               {cargo.docs.map((label) => (
                 <Chip key={label} size="small" variant="outlined" label={label} />
               ))}

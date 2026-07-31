@@ -40,6 +40,9 @@ export const PlaceBetPage = ({ auctionUuid }: PlaceBetPageProps) => {
       price={detail.trading.price}
       aucType={detail.main.auc_type ?? 'Unknown'}
       bidMeasurementType={detail.trading.bid_measurement_type}
+      // Берётся `last_bet_with_vat`, а не `last_bet`: ставка всегда
+      // отправляется в базе с НДС (⑧), и поле формы обязано быть в той же базе.
+      myLastBet={detail.trading.your?.last_bet_with_vat ?? null}
       onClose={close}
     />
   );

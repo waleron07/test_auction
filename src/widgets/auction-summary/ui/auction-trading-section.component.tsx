@@ -20,7 +20,10 @@ export const AuctionTradingSection = ({ trading }: AuctionTradingSectionProps) =
       <FieldRow label="Торговый статус" value={<AuctionBadge badge={trading.status} />} />
       <FieldRow label="Начало торгов" value={trading.startDate} />
       <FieldRow label="Окончание торгов" value={trading.stopDate} />
-      <FieldRow label="Встречные ставки" value={trading.allowCounterBets ? 'Разрешены' : 'Не разрешены'} />
+      <FieldRow
+        label="Встречные ставки"
+        value={trading.allowCounterBets ? 'Разрешены' : 'Не разрешены'}
+      />
       {trading.prolongAfterBetMinutes === null ? null : (
         <FieldRow
           label="Продление после ставки"

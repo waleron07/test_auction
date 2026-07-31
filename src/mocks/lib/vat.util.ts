@@ -37,15 +37,46 @@ export const noVat = (value: number): number => roundKopecks(value / VAT_MULTIPL
 export const pricePerKm = (priceNoVat: number, distance: number | null): number =>
   distance === null || distance === 0 ? 0 : roundKopecks(priceNoVat / distance);
 
+/** Границы цены аукциона; `null` означает «ограничения нет» (⑦). */
+export interface PriceBounds {
+  min: number | null;
+  max: number | null;
+}
+
 /**
- * Следующая допустимая цена: шаг в сторону торгов.
- * @param price Текущая цена.
+ * Следующая допустимая цена: шаг в сторону торгов, но **внутри границ**.
+ *
+ * Шаг сдвигает цену только там, где направление торгов вообще ограничено:
+ * `Up` — вверх, `Down` — вниз. У `Request`, `FixPrice` и `Unknown` направления
+ * нет (⑧), поэтому доступной остаётся сама текущая цена: вычитать у них шаг
+ * значило бы придумывать правило, которого нет ни в схеме, ни в валидации.
+ *
+ * Результат зажимается в `[min, max]`. Без этого `available` вылезал за
+ * границы — на `Request` с `min == current` он оказывался на шаг **ниже**
+ * минимума, то есть «доступная» цена была заведомо невалидной, и форма
+ * ставки подставляла её в поле по умолчанию.
+ * @param price Текущая цена — цена лучшей ставки.
  * @param step Шаг ставки; `null` или неположительный означает «шага нет».
- * @param aucType Тип аукциона: на повышение шаг прибавляется, иначе вычитается.
+ * @param aucType Тип аукциона: направление шага берётся из него.
+ * @param bounds Границы цены из `trading.price`.
  * @returns Цена, доступная для следующей ставки.
  */
-export const nextAvailablePrice = (price: number, step: number | null, aucType: string): number => {
-  if (step === null || step <= 0) return price;
+export const nextAvailablePrice = (
+  price: number,
+  step: number | null,
+  aucType: string,
+  bounds: PriceBounds = { min: null, max: null },
+): number => {
+  const moved =
+    step === null || step <= 0
+      ? price
+      : aucType === 'Up'
+        ? price + step
+        : aucType === 'Down'
+          ? price - step
+          : price;
 
-  return aucType === 'Up' ? price + step : price - step;
+  const withMin = bounds.min === null ? moved : Math.max(moved, bounds.min);
+
+  return bounds.max === null ? withMin : Math.min(withMin, bounds.max);
 };
